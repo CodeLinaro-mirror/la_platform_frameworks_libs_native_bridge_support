@@ -90,7 +90,7 @@ def _get_type_str(guest_api, type_name, is_return_type):
                                     'auto(*)(%s) -> %s')
 
   # Handle pointers and references to objects.
-  if kind == 'pointer' or kind == 'reference' or kind == 'rvalue_reference':
+  if kind in ['pointer', 'reference', 'rvalue_reference', 'union']:
     return 'void*'
 
   if kind == 'const':
@@ -128,16 +128,26 @@ def _get_function_type_str_from_signature(signature):
 
 
 def _get_default_trampoline(symbol, guest_api):
+  symbol_call_method = guest_api['symbols'][symbol]['call_method']
+  symbol_has_signature = 'signature' in guest_api['symbols'][symbol]
+  symbol_has_type = 'type' in guest_api['symbols'][symbol]
+
   trampoline = 'GetTrampolineFunc<'
-
-  if 'type' in guest_api['symbols'][symbol]:
-    if 'signature' in guest_api['symbols'][symbol]:
-      raise Exception(('custom signature must not be defined for'
-                       ' a symbol with defined type: %s') % symbol)
-
+  if symbol_call_method == "custom_thunk" and symbol_has_signature:
+    custom_signature = guest_api['symbols'][symbol].get('signature', None)
+    assert custom_signature
+    params_str = _get_function_type_str_from_signature(custom_signature)
+  elif symbol_has_type:
+    if symbol_has_signature and symbol_call_method == 'default':
+      raise Exception(('Default symbol has both a defined type and a signature: %s') % symbol)
     type_name = guest_api['symbols'][symbol]['type']
     params_str = _get_type_str(guest_api, type_name, False)
   else:
+    if not symbol_has_signature:
+      raise Exception(('This symbol is not defined in api jsons.'
+                       ' Please define a custom signature: %s') % symbol)
+    if symbol_call_method == "default":
+      print(('INFO: this symbol uses a manually written signature: %s') % symbol)
     custom_signature = guest_api['symbols'][symbol].get('signature', None)
     assert custom_signature
     params_str = _get_function_type_str_from_signature(custom_signature)
@@ -259,8 +269,10 @@ def main(argv):
   args = parser.parse_args()
 
   library = args.library
+
   guest_api = json.load(open(args.guest_api_descr_file))
   host_api = json.load(open(args.host_api_descr_file))
+
   custom_api = json.load(open(args.custom_trampolines_descr_file))
 
   api_analysis.mark_incompatible_and_custom_api(
