@@ -288,6 +288,7 @@ class APIComparator(object):
                     'atomic',
                     'char',
                     'class',
+                    'complex',
                     'const',
                     'incomplete',
                     'int',
@@ -429,12 +430,31 @@ def _override_custom_symbol_properties(guest_api, custom_api):
       # This may override 'call_method' for function-type symbol.
       # But should not override 'is_compatible', which is only used
       # when symbol isn't present in guest_api.
-      assert 'is_compatible' not in custom_descr, ('The symbol %s is already '
-                                                   'compatible: remove the '
-                                                   'override') % custom_symbol
+      # If custom_trampolines should always override symbols we don't care
+      # if the symbol is already compatible.
+      if not custom_config.get('ignore_non_custom', False):
+        assert 'is_compatible' not in custom_descr, ('The symbol %s is already '
+                                                    'compatible: remove the '
+                                                    'override') % custom_symbol
       if 'is_custom_compatible' in custom_descr:
         custom_descr['is_compatible'] = custom_descr['is_custom_compatible']
       guest_api['symbols'][custom_symbol].update(custom_descr)
+
+  for custom_symbol, custom_descr in custom_api['symbols'].items():
+    # If a custom symbol has a 'guest_api_symbol' entry, this entry states the name of
+    # a guest api symbol which has the type that this custom trampoline can use, instead
+    # of taking the type from a manually written signature.
+    guest_api_symbol_name = custom_descr.get('guest_api_symbol', None)
+    if guest_api_symbol_name:
+      guest_api_symbol = guest_api['symbols'].get(guest_api_symbol_name, None)
+      if not guest_api_symbol:
+        raise Exception(('This custom thunk tries to take the type from'
+                       ' an api json symbol which does not exist: %s') % custom_symbol)
+      json_symbol_type = guest_api_symbol.get('type', None)
+      if not json_symbol_type:
+        raise Exception(('This custom thunk tries to take the type from'
+                       ' an api json symbol which does not have a type entry: %s') % custom_symbol)
+      guest_api['symbols'][custom_symbol]['type'] = guest_api_symbol['type']
 
   if custom_config.get('ignore_non_custom', False):
     for symbol, descr in guest_api['symbols'].items():
