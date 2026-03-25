@@ -549,10 +549,6 @@
 		{
 			"type" : "unsigned char8 const*"
 		},
-		"AMEDIAFORMAT_KEY_HDR_ST2094_50_INFO" : 
-		{
-			"type" : "unsigned char8 const*"
-		},
 		"AMEDIAFORMAT_KEY_HDR_STATIC_INFO" : 
 		{
 			"type" : "unsigned char8 const*"
