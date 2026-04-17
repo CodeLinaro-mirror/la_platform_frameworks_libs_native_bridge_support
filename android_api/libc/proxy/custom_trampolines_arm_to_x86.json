@@ -32,6 +32,11 @@
       "header": "sys/system_properties.h",
       "is_compatible": true
     },
+    "__system_properties_zygote_reload": {
+      "call_method": "default",
+      "header": "sys/system_properties.h",
+      "is_compatible": true
+    },
     "__system_property_add": {
       "call_method": "default",
       "header": "sys/system_properties.h",
@@ -341,6 +346,13 @@
       "call_method": "custom_thunk",
       "custom_thunk": "realloc",
       "guest_api_symbol": "realloc",
+      "header": "malloc.h",
+      "is_compatible": true
+    },
+    "native_bridge_reallocarray": {
+      "call_method": "custom_thunk",
+      "custom_thunk": "reallocarray",
+      "guest_api_symbol": "reallocarray",
       "header": "malloc.h",
       "is_compatible": true
     },
